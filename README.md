@@ -1,1 +1,1 @@
-# study-vibe-cordeing
+# study-vibe-coding
