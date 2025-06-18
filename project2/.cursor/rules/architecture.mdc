@@ -1,0 +1,38 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 온라인 쇼핑 최저가 Agent 시스템 아키텍처
+
+## 개요
+- 사용자는 채팅 UI에서 상품명/URL을 입력
+- Agent는 입력을 받아 여러 쇼핑몰(쿠팡, 11번가, G마켓, 네이버쇼핑 등) API/웹에서 실시간 가격·조건을 수집
+- 수집된 데이터는 정규화/비교되어, 최저가·추천 결과를 스트리밍 방식으로 사용자에게 제공
+- 대화 히스토리와 맥락을 기억해 연속 질의 지원
+
+## 아키텍처 다이어그램
+
+```mermaid
+graph TD
+    U[사용자<br/>채팅 UI] -->|상품명/URL 입력| FE[프론트엔드<br/>채팅 인터페이스]
+    FE -->|질문 전달| AG[Agent 서버]
+    AG -->|검색 요청| SM1[쿠팡 API/웹]
+    AG -->|검색 요청| SM2[11번가 API/웹]
+    AG -->|검색 요청| SM3[네이버쇼핑 API/웹]
+    AG -->|검색 요청| SM4[G마켓 API/웹]
+    SM1 -->|가격/조건 응답| AG
+    SM2 -->|가격/조건 응답| AG
+    SM3 -->|가격/조건 응답| AG
+    SM4 -->|가격/조건 응답| AG
+    AG -->|정규화/비교/최적화| AG
+    AG -->|스트리밍 결과| FE
+    FE -->|실시간 결과 표시| U
+    AG <--> DB[(대화 히스토리/검색 기록)]
+```
+
+---
+
+- [problem-definition.mdc](mdc:problem-definition.mdc)
+- [prd.mdc](mdc:prd.mdc)
+- [user-scenario.mdc](mdc:user-scenario.mdc)

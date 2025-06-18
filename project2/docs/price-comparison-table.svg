@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="500" height="400" xmlns="http://www.w3.org/2000/svg">
+  <!-- 배경 -->
+  <rect width="500" height="400" fill="white" stroke="#e9ecef" stroke-width="2" rx="10"/>
+  
+  <!-- 제목 -->
+  <text x="250" y="30" font-family="Arial" font-size="18" font-weight="bold" text-anchor="middle">아이폰 15 Pro 256GB 가격 비교</text>
+  
+  <!-- 테이블 헤더 -->
+  <rect x="20" y="50" width="460" height="40" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
+  <line x1="120" y1="50" x2="120" y2="90" stroke="#dee2e6"/>
+  <line x1="220" y1="50" x2="220" y2="90" stroke="#dee2e6"/>
+  <line x1="320" y1="50" x2="320" y2="90" stroke="#dee2e6"/>
+  <line x1="420" y1="50" x2="420" y2="90" stroke="#dee2e6"/>
+  
+  <text x="70" y="75" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle">쇼핑몰</text>
+  <text x="170" y="75" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle">상품가격</text>
+  <text x="270" y="75" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle">배송비</text>
+  <text x="370" y="75" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle">최종가격</text>
+  <text x="450" y="75" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle">링크</text>
+  
+  <!-- 1등 - 쿠팡 (하이라이트) -->
+  <rect x="20" y="90" width="460" height="50" fill="#e8f5e8" stroke="#4caf50" stroke-width="2"/>
+  <line x1="120" y1="90" x2="120" y2="140" stroke="#4caf50"/>
+  <line x1="220" y1="90" x2="220" y2="140" stroke="#4caf50"/>
+  <line x1="320" y1="90" x2="320" y2="140" stroke="#4caf50"/>
+  <line x1="420" y1="90" x2="420" y2="140" stroke="#4caf50"/>
+  
+  <text x="70" y="110" font-family="Arial" font-size="12" font-weight="bold" text-anchor="middle">🥇 쿠팡</text>
+  <text x="70" y="125" font-family="Arial" font-size="10" fill="#4caf50" text-anchor="middle">최저가</text>
+  <text x="170" y="120" font-family="Arial" font-size="14" text-anchor="middle">1,350,000원</text>
+  <text x="270" y="120" font-family="Arial" font-size="14" text-anchor="middle" fill="#4caf50">무료</text>
+  <text x="370" y="120" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle">1,350,000원</text>
+  <circle cx="450" cy="115" r="12" fill="#4a90e2"/>
+  <text x="447" y="119" font-family="Arial" font-size="10" fill="white">GO</text>
+  
+  <!-- 2등 - 네이버쇼핑 -->
+  <rect x="20" y="140" width="460" height="50" fill="white" stroke="#dee2e6" stroke-width="1"/>
+  <line x1="120" y1="140" x2="120" y2="190" stroke="#dee2e6"/>
+  <line x1="220" y1="140" x2="220" y2="190" stroke="#dee2e6"/>
+  <line x1="320" y1="140" x2="320" y2="190" stroke="#dee2e6"/>
+  <line x1="420" y1="140" x2="420" y2="190" stroke="#dee2e6"/>
+  
+  <text x="70" y="160" font-family="Arial" font-size="12" text-anchor="middle">🥈 네이버쇼핑</text>
+  <text x="70" y="175" font-family="Arial" font-size="10" fill="#ff9800" text-anchor="middle">+15,000원</text>
+  <text x="170" y="170" font-family="Arial" font-size="14" text-anchor="middle">1,365,000원</text>
+  <text x="270" y="170" font-family="Arial" font-size="14" text-anchor="middle" fill="#4caf50">무료</text>
+  <text x="370" y="170" font-family="Arial" font-size="14" text-anchor="middle">1,365,000원</text>
+  <circle cx="450" cy="165" r="12" fill="#4a90e2"/>
+  <text x="447" y="169" font-family="Arial" font-size="10" fill="white">GO</text>
+  
+  <!-- 3등 - 11번가 -->
+  <rect x="20" y="190" width="460" height="50" fill="white" stroke="#dee2e6" stroke-width="1"/>
+  <line x1="120" y1="190" x2="120" y2="240" stroke="#dee2e6"/>
+  <line x1="220" y1="190" x2="220" y2="240" stroke="#dee2e6"/>
+  <line x1="320" y1="190" x2="320" y2="240" stroke="#dee2e6"/>
+  <line x1="420" y1="190" x2="420" y2="240" stroke="#dee2e6"/>
+  
+  <text x="70" y="210" font-family="Arial" font-size="12" text-anchor="middle">🥉 11번가</text>
+  <text x="70" y="225" font-family="Arial" font-size="10" fill="#f44336" text-anchor="middle">+32,500원</text>
+  <text x="170" y="220" font-family="Arial" font-size="14" text-anchor="middle">1,380,000원</text>
+  <text x="270" y="220" font-family="Arial" font-size="14" text-anchor="middle" fill="#f44336">2,500원</text>
+  <text x="370" y="220" font-family="Arial" font-size="14" text-anchor="middle">1,382,500원</text>
+  <circle cx="450" cy="215" r="12" fill="#4a90e2"/>
+  <text x="447" y="219" font-family="Arial" font-size="10" fill="white">GO</text>
+  
+  <!-- 절약 정보 -->
+  <rect x="20" y="260" width="460" height="40" fill="#fff3e0" stroke="#ff9800" stroke-width="1" rx="5"/>
+  <text x="30" y="280" font-family="Arial" font-size="12" fill="#e65100">💰 최저가 대비 최대 32,500원 절약 가능!</text>
+  <text x="30" y="295" font-family="Arial" font-size="10" fill="#e65100">쿠팡에서 구매하면 가장 저렴해요</text>
+  
+  <!-- 업데이트 시간 -->
+  <text x="250" y="330" font-family="Arial" font-size="10" fill="#999" text-anchor="middle">최근 업데이트: 2024.01.15 14:30</text>
+  <text x="250" y="345" font-family="Arial" font-size="10" fill="#999" text-anchor="middle">⚠️ 실시간 가격은 변동될 수 있습니다</text>
+  
+  <!-- 새로고침 버튼 -->
+  <rect x="200" y="355" width="100" height="30" fill="#4a90e2" rx="15"/>
+  <text x="250" y="375" font-family="Arial" font-size="12" fill="white" text-anchor="middle">🔄 다시 검색</text>
+</svg> 

@@ -1,0 +1,41 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 프로토타입 개발 Task 테이블 (심플 버전)
+
+- [prd.mdc](mdc:prd.mdc)
+- [tech-stack.mdc](mdc:tech-stack.mdc)
+
+## Task Table
+
+| task id | title                | description                                 | status   | dependencies | priority | details                                                                 | test_strategy                       |
+|---------|----------------------|---------------------------------------------|----------|--------------|----------|-------------------------------------------------------------------------|-------------------------------------|
+| 1       | FastAPI 기본 API     | FastAPI 서버 및 health check API 구현       | TODO     | -            | HIGH     | `/health` 엔드포인트, 서버 실행 확인                                    | curl로 200 응답 확인                |
+| 2       | Streamlit 채팅 UI    | 사용자 입력/응답 채팅 인터페이스 구현       | TODO     | -            | HIGH     | Streamlit, 입력창/응답창, 기본 레이아웃                                 | UI 렌더링, 입력/응답 표시           |
+| 3       | Agent 연동           | LangGraph 기반 Agent 및 LLM 연동            | TODO     | 1            | HIGH     | LangGraph, Gemini-2.5-flash-preview-05-20, 간단 질의응답                | 샘플 질의에 LLM 응답 확인           |
+| 4       | MCP Search Tool 연동 | MCP Search Tool을 통한 외부 검색 기능 구현   | TODO     | 3            | MEDIUM   | MCP Search Tool, 상품명 입력 시 검색 결과 반환                           | 검색 결과 포함 응답 확인            |
+| 5       | 가격 비교 테이블     | 응답에 가격 비교 테이블 형태로 결과 표시     | TODO     | 4            | MEDIUM   | Streamlit에서 표 형태로 가격/조건/구매링크 표시                         | 표 렌더링, 값 일치 여부             |
+| 6       | 대화 히스토리        | 최근 대화/검색 기록 간단 저장 및 불러오기    | TODO     | 2,3          | LOW      | 메모리 기반(로컬), 최근 5개 대화 저장/조회                              | 대화 기록 저장/조회 동작 확인       |
+
+---
+
+## 채팅화면용 테이블 코드 (Streamlit 예시)
+
+```python
+import streamlit as st
+import pandas as pd
+
+tasks = [
+    {"task id": 1, "title": "FastAPI 기본 API", "description": "FastAPI 서버 및 health check API 구현", "status": "TODO", "dependencies": "-", "priority": "HIGH", "details": "/health 엔드포인트, 서버 실행 확인", "test_strategy": "curl로 200 응답 확인"},
+    {"task id": 2, "title": "Streamlit 채팅 UI", "description": "사용자 입력/응답 채팅 인터페이스 구현", "status": "TODO", "dependencies": "-", "priority": "HIGH", "details": "Streamlit, 입력창/응답창, 기본 레이아웃", "test_strategy": "UI 렌더링, 입력/응답 표시"},
+    {"task id": 3, "title": "Agent 연동", "description": "LangGraph 기반 Agent 및 LLM 연동", "status": "TODO", "dependencies": "1", "priority": "HIGH", "details": "LangGraph, Gemini-2.5-flash-preview-05-20, 간단 질의응답", "test_strategy": "샘플 질의에 LLM 응답 확인"},
+    {"task id": 4, "title": "MCP Search Tool 연동", "description": "MCP Search Tool을 통한 외부 검색 기능 구현", "status": "TODO", "dependencies": "3", "priority": "MEDIUM", "details": "MCP Search Tool, 상품명 입력 시 검색 결과 반환", "test_strategy": "검색 결과 포함 응답 확인"},
+    {"task id": 5, "title": "가격 비교 테이블", "description": "응답에 가격 비교 테이블 형태로 결과 표시", "status": "TODO", "dependencies": "4", "priority": "MEDIUM", "details": "Streamlit에서 표 형태로 가격/조건/구매링크 표시", "test_strategy": "표 렌더링, 값 일치 여부"},
+    {"task id": 6, "title": "대화 히스토리", "description": "최근 대화/검색 기록 간단 저장 및 불러오기", "status": "TODO", "dependencies": "2,3", "priority": "LOW", "details": "메모리 기반(로컬), 최근 5개 대화 저장/조회", "test_strategy": "대화 기록 저장/조회 동작 확인"},
+]
+
+df = pd.DataFrame(tasks)
+st.dataframe(df, hide_index=True)
+```

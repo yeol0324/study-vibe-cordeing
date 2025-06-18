@@ -1,0 +1,50 @@
+---
+description: tech-stack
+globs: 
+alwaysApply: false
+---
+# 온라인 쇼핑 최저가 검색 Agent - 기술 스택
+
+## 개발 환경
+- **Python 버전**: 3.11
+- **개발 IDE**: Cursor
+- **패키지 관리**: pip
+- **가상환경**: venv 또는 conda
+
+## 백엔드 (API) 
+### FastAPI
+- **프레임워크**: FastAPI (비동기 웹 프레임워크)
+
+## 프론트엔드
+### Streamlit
+- **프레임워리**: Streamlit (웹 앱 구축)
+
+## AI Agent 엔진
+### LangGraph & LangSmith
+- **Agent 프레임워크**:ph 터링**: LangSmith (Agent 성능 추적 및 디버깅)
+- **주요 기능**:
+  - 상태 관리 기반 대화 플로우
+  - 툴 체이닝 및 병렬 실행
+  - 에러 핸들링 및 재시도 로직
+
+### 메모리 시스템
+- **메모리 구현**: LangGraph 로컬 메모리 모듈
+- **주요 기능**:
+  - 대화 히스토리 저장
+  - 이전 검색 결과 기억
+  - 멀티턴 대화 컨텍스트 유지
+
+### LLM (언어 모델)
+- **모델**: Gemini 2.5 Flash Preview (05-20)
+- **API**: Google AI Studio / Vertex AI
+- **주요 특징**:
+  - 한국어 처리 최적화
+  - 구조화된 출력 지원
+
+## 검색 도구 (MCP Tools)
+### MCP (Model Context Protocol) 연동
+- **검색 도구**: MCP를 통한 인터넷 검색
+- **주요 기능**:
+  - 인터넷 검색 엔진 통해서 상품 검색 
+  - 상품 정보 수집
+  - 가격 데이터 추출

@@ -1,0 +1,91 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 프로젝트 폴더 구조 (Layered Structure)
+
+- [prd.mdc](mdc:prd.mdc)
+- [tech-stack.mdc](mdc:tech-stack.mdc)
+
+## 루트
+```
+project2/
+  backend/           # 백엔드(Agent API, 비즈니스 로직)
+  frontend/          # 프론트엔드(Streamlit UI)
+  docs/              # 문서 및 와이어프레임
+  .cursor/rules/     # Cursor 룰 파일
+```
+
+## backend (FastAPI + LangGraph 기반)
+```
+backend/
+  app/
+    __init__.py
+    main.py           # FastAPI 진입점
+    api/              # API 라우터 계층
+      __init__.py
+      v1/
+        __init__.py
+        agent.py      # Agent 관련 API
+        search.py     # MCP Search 연동 API
+    services/         # 비즈니스 로직 계층
+      __init__.py
+      agent_service.py
+      search_service.py
+      memory_service.py
+    models/           # 데이터 모델/스키마
+      __init__.py
+      agent.py
+      search.py
+    core/             # 공통 유틸, 설정, 예외처리
+      __init__.py
+      config.py
+      exceptions.py
+      logger.py
+    agent/            # LangGraph, LangSmith, LLM, Tool 연동
+      __init__.py
+      langgraph_agent.py
+      memory.py       # LangGraph 로컬 메모리
+      tools.py        # MCP Search Tool 래퍼
+    db/               # 대화 히스토리/검색 기록 저장
+      __init__.py
+      database.py
+      schemas.py
+      crud.py
+  tests/              # 백엔드 테스트 코드
+    ...
+```
+
+## frontend (Streamlit 기반)
+```
+frontend/
+  app/
+    __init__.py
+    main.py           # Streamlit 진입점
+    components/       # UI 컴포넌트(채팅, 테이블 등)
+      chat.py
+      price_table.py
+      header.py
+      history.py
+    pages/            # 멀티 페이지 지원 시
+      home.py
+      history.py
+    utils/            # 프론트엔드 유틸/헬퍼
+      __init__.py
+      formatters.py
+      api_client.py   # 백엔드 API 연동
+  assets/             # 이미지, SVG, 스타일 등 정적 파일
+    ...
+  tests/              # 프론트엔드 테스트 코드
+    ...
+```
+
+## docs
+- UI/UX, 아키텍처, 와이어프레임, 시나리오 등 문서화
+
+---
+
+- 각 계층별로 역할을 분리해 유지보수성과 확장성을 높임
+- Agent, LLM, Tool, 메모리 등은 backend/agent/에 집중 관리
+- 프론트엔드는 Streamlit 컴포넌트 중심으로 설계
