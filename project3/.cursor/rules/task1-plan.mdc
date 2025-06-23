@@ -1,0 +1,25 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 1번 태스크 개발 계획 (TASK-001)
+
+## 구현 항목
+1. 프로젝트 폴더 구조 생성
+2. 의존성 설치
+3. 환경 설정 파일(.env) 작성
+4. Python 3.11 개발 환경 구성
+
+## 기술 스택 및 라이브러리
+- Python 3.11
+- FastAPI (백엔드)
+- Streamlit (프론트엔드)
+- uvicorn (ASGI 서버)
+- LangGraph (Agent)
+- LangChain DuckDuckGo (웹 검색 Tool)
+- Gemini-2.5-flash-preview-05-20 (LLM)
+
+## 개발 참고
+- [development-tasks.mdc](mdc:development-tasks.mdc)
+- [tech-stack.mdc](mdc:tech-stack.mdc)
