@@ -1,0 +1,215 @@
+name: 이슈 자동 할당
+
+on:
+  issues:
+    types: [opened, reopened, labeled]
+
+jobs:
+  assign-issue:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 이슈 자동 할당
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const issueNumber = context.payload.issue.number;
+          const issueTitle = context.payload.issue.title.toLowerCase();
+          const issueBody = context.payload.issue.body?.toLowerCase() || '';
+          const issueLabels = context.payload.issue.labels.map(label => label.name);
+          const author = context.payload.issue.user.login;
+          
+          // 팀 멤버 정의 (실제 GitHub 사용자명으로 변경 필요)
+          const teamMembers = {
+            backend: ['backend-dev1', 'backend-dev2', 'fullstack-dev'],
+            frontend: ['frontend-dev1', 'frontend-dev2', 'fullstack-dev'],
+            docs: ['tech-writer', 'fullstack-dev', 'project-maintainer'],
+            bug: ['qa-engineer', 'backend-dev1', 'frontend-dev1'],
+            feature: ['product-manager', 'lead-dev', 'fullstack-dev'],
+            security: ['security-engineer', 'backend-dev1'],
+            performance: ['performance-engineer', 'backend-dev1'],
+            urgent: ['lead-dev', 'project-maintainer'],
+            default: ['project-maintainer', 'lead-dev']
+          };
+          
+          let assignees = new Set();
+          
+          // 라벨 기반 할당
+          for (const label of issueLabels) {
+            if (label.startsWith('area/')) {
+              const area = label.replace('area/', '');
+              if (teamMembers[area]) {
+                const randomMember = teamMembers[area][Math.floor(Math.random() * teamMembers[area].length)];
+                assignees.add(randomMember);
+              }
+            } else if (label.startsWith('type/')) {
+              const type = label.replace('type/', '');
+              if (teamMembers[type]) {
+                const randomMember = teamMembers[type][Math.floor(Math.random() * teamMembers[type].length)];
+                assignees.add(randomMember);
+              }
+            } else if (label.startsWith('priority/high') || label.includes('urgent')) {
+              teamMembers.urgent.forEach(member => assignees.add(member));
+            }
+          }
+          
+          // 키워드 기반 할당 (라벨이 없는 경우)
+          if (assignees.size === 0) {
+            if (issueTitle.includes('backend') || issueBody.includes('api') || issueBody.includes('server')) {
+              const randomMember = teamMembers.backend[Math.floor(Math.random() * teamMembers.backend.length)];
+              assignees.add(randomMember);
+            } else if (issueTitle.includes('frontend') || issueBody.includes('ui') || issueBody.includes('streamlit')) {
+              const randomMember = teamMembers.frontend[Math.floor(Math.random() * teamMembers.frontend.length)];
+              assignees.add(randomMember);
+            } else if (issueTitle.includes('docs') || issueTitle.includes('documentation')) {
+              const randomMember = teamMembers.docs[Math.floor(Math.random() * teamMembers.docs.length)];
+              assignees.add(randomMember);
+            } else if (issueTitle.includes('bug') || issueTitle.includes('error') || issueTitle.includes('fail')) {
+              const randomMember = teamMembers.bug[Math.floor(Math.random() * teamMembers.bug.length)];
+              assignees.add(randomMember);
+            } else if (issueTitle.includes('feature') || issueTitle.includes('enhancement')) {
+              const randomMember = teamMembers.feature[Math.floor(Math.random() * teamMembers.feature.length)];
+              assignees.add(randomMember);
+            } else if (issueTitle.includes('security') || issueBody.includes('vulnerability')) {
+              const randomMember = teamMembers.security[Math.floor(Math.random() * teamMembers.security.length)];
+              assignees.add(randomMember);
+            } else if (issueTitle.includes('performance') || issueTitle.includes('slow') || issueTitle.includes('optimization')) {
+              const randomMember = teamMembers.performance[Math.floor(Math.random() * teamMembers.performance.length)];
+              assignees.add(randomMember);
+            }
+          }
+          
+          // 긴급한 이슈인 경우 추가 할당
+          if (issueTitle.includes('urgent') || issueTitle.includes('critical') || issueTitle.includes('hotfix')) {
+            teamMembers.urgent.forEach(member => assignees.add(member));
+          }
+          
+          // 기본 할당 (매칭되는 것이 없는 경우)
+          if (assignees.size === 0) {
+            const randomDefault = teamMembers.default[Math.floor(Math.random() * teamMembers.default.length)];
+            assignees.add(randomDefault);
+          }
+          
+          // 작성자는 제외
+          assignees.delete(author);
+          
+          // 최대 2명까지만 할당
+          const finalAssignees = Array.from(assignees).slice(0, 2);
+          
+          if (finalAssignees.length > 0) {
+            try {
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                assignees: finalAssignees
+              });
+              
+              console.log(`이슈 할당 완료: ${finalAssignees.join(', ')}`);
+              
+              // 할당 완료 댓글 추가
+              const assignMessage = `
+              ## 👤 담당자가 자동으로 할당되었습니다
+              
+              할당된 담당자: ${finalAssignees.map(a => `@${a}`).join(', ')}
+              
+              **할당 기준:**
+              ${issueLabels.length > 0 ? `- 라벨: ${issueLabels.join(', ')}` : ''}
+              ${issueTitle.includes('urgent') ? '- 긴급 이슈로 분류됨' : ''}
+              ${assignees.size > 2 ? '- 복수 영역 관련으로 주요 담당자만 할당' : ''}
+              
+              ### 📝 담당자 안내
+              
+              @${finalAssignees.join(' @')} 님들께:
+              - 이슈를 검토하고 라벨을 추가해 주세요
+              - 추가 정보가 필요하면 작성자에게 질문해 주세요
+              - 작업 시작 시 상태를 업데이트해 주세요
+              
+              ### 🔄 상태 관리
+              
+              - **분석 중**: 이슈를 분석하고 있습니다
+              - **진행 중**: 작업을 시작했습니다
+              - **블로킹**: 외부 요인으로 대기 중입니다
+              - **완료**: 작업이 완료되었습니다
+              
+              담당자가 적절하지 않다면 수동으로 재할당해 주세요.
+              `;
+              
+              await github.rest.issues.createComment({
+                issue_number: issueNumber,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: assignMessage
+              });
+              
+            } catch (error) {
+              console.log(`이슈 할당 실패: ${error.message}`);
+              console.log('일부 사용자가 존재하지 않거나 권한이 없을 수 있습니다.');
+              
+              // 할당 실패 시 알림 댓글
+              const errorMessage = `
+              ## ⚠️ 자동 할당 실패
+              
+              담당자 자동 할당에 실패했습니다. 다음 중 하나의 이유일 수 있습니다:
+              
+              - 설정된 사용자가 저장소에 접근 권한이 없음
+              - 사용자명이 변경되었거나 존재하지 않음
+              - 저장소 권한 설정 문제
+              
+              **추천 담당자**: ${finalAssignees.join(', ')}
+              
+              프로젝트 관리자가 수동으로 담당자를 할당해 주세요.
+              `;
+              
+              await github.rest.issues.createComment({
+                issue_number: issueNumber,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: errorMessage
+              });
+            }
+          } else {
+            console.log('할당 가능한 담당자가 없습니다.');
+          }
+  
+  auto-escalate-urgent:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.title, 'urgent') || contains(github.event.issue.title, 'critical')
+    
+    steps:
+    - name: 긴급 이슈 에스컬레이션
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const issueNumber = context.payload.issue.number;
+          
+          // 긴급 라벨 추가
+          await github.rest.issues.addLabels({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: issueNumber,
+            labels: ['priority/high', 'urgent']
+          });
+          
+          // 에스컬레이션 댓글
+          const escalationMessage = `
+          ## 🚨 긴급 이슈 감지됨
+          
+          이 이슈는 긴급 이슈로 분류되어 우선순위가 높게 설정되었습니다.
+          
+          **자동 처리 사항:**
+          - \`priority/high\` 및 \`urgent\` 라벨 추가
+          - 프로젝트 리더에게 자동 할당
+          - 높은 우선순위로 처리 예정
+          
+          **예상 응답 시간**: 24시간 이내
+          
+          추가 지원이 필요하시면 즉시 연락 부탁드립니다.
+          `;
+          
+          await github.rest.issues.createComment({
+            issue_number: issueNumber,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: escalationMessage
+          }); 

@@ -1,0 +1,145 @@
+name: PR 자동 할당
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+
+jobs:
+  assign-reviewers:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: PR 작성자 정보 가져오기
+      id: pr-info
+      run: |
+        echo "author=${{ github.event.pull_request.user.login }}" >> $GITHUB_OUTPUT
+        echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+    
+    - name: 변경된 파일 확인
+      id: changed-files
+      uses: tj-actions/changed-files@v40
+      with:
+        files: |
+          backend/**
+          frontend/**
+          docs/**
+        files_yaml: |
+          backend:
+            - 'backend/**'
+          frontend:
+            - 'frontend/**'
+          docs:
+            - 'docs/**'
+          tests:
+            - '**/test_*.py'
+            - '**/tests/**'
+    
+    - name: 리뷰어 자동 할당
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const prNumber = context.payload.pull_request.number;
+          const author = context.payload.pull_request.user.login;
+          
+          // 프로젝트 팀 멤버 정의 (실제 GitHub 사용자명으로 변경 필요)
+          const teamMembers = {
+            backend: ['backend-dev1', 'backend-dev2', 'fullstack-dev'],
+            frontend: ['frontend-dev1', 'frontend-dev2', 'fullstack-dev'],
+            docs: ['tech-writer', 'fullstack-dev'],
+            tests: ['qa-engineer', 'backend-dev1'],
+            default: ['project-maintainer', 'lead-dev']
+          };
+          
+          // 변경된 파일 영역 확인
+          const changedFiles = {
+            backend: '${{ steps.changed-files.outputs.backend_any_changed }}' === 'true',
+            frontend: '${{ steps.changed-files.outputs.frontend_any_changed }}' === 'true',
+            docs: '${{ steps.changed-files.outputs.docs_any_changed }}' === 'true',
+            tests: '${{ steps.changed-files.outputs.tests_any_changed }}' === 'true'
+          };
+          
+          // 리뷰어 선택 로직
+          let reviewers = new Set();
+          
+          for (const [area, hasChanges] of Object.entries(changedFiles)) {
+            if (hasChanges && teamMembers[area]) {
+              // 각 영역에서 작성자가 아닌 사람을 무작위로 선택
+              const availableReviewers = teamMembers[area].filter(member => member !== author);
+              if (availableReviewers.length > 0) {
+                const randomReviewer = availableReviewers[Math.floor(Math.random() * availableReviewers.length)];
+                reviewers.add(randomReviewer);
+              }
+            }
+          }
+          
+          // 특정 영역 변경이 없으면 기본 리뷰어 할당
+          if (reviewers.size === 0) {
+            const defaultReviewers = teamMembers.default.filter(member => member !== author);
+            if (defaultReviewers.length > 0) {
+              reviewers.add(defaultReviewers[0]);
+            }
+          }
+          
+          // 최대 3명까지만 할당
+          const finalReviewers = Array.from(reviewers).slice(0, 3);
+          
+          if (finalReviewers.length > 0) {
+            try {
+              await github.rest.pulls.requestReviewers({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                reviewers: finalReviewers
+              });
+              
+              console.log(`리뷰어 할당 완료: ${finalReviewers.join(', ')}`);
+              
+              // 할당 완료 댓글 추가
+              const assignMessage = `
+              ## 👥 리뷰어가 자동으로 할당되었습니다
+              
+              할당된 리뷰어: ${finalReviewers.map(r => `@${r}`).join(', ')}
+              
+              변경 영역:
+              ${Object.entries(changedFiles)
+                .filter(([_, changed]) => changed)
+                .map(([area, _]) => `- ${area}`)
+                .join('\n') || '- 기타'}
+              `;
+              
+              await github.rest.issues.createComment({
+                issue_number: prNumber,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: assignMessage
+              });
+              
+            } catch (error) {
+              console.log(`리뷰어 할당 실패: ${error.message}`);
+              console.log('일부 사용자가 존재하지 않거나 권한이 없을 수 있습니다.');
+            }
+          } else {
+            console.log('할당 가능한 리뷰어가 없습니다.');
+          }
+    
+    - name: PR 작성자에게 할당
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const prNumber = context.payload.pull_request.number;
+          const author = context.payload.pull_request.user.login;
+          
+          try {
+            await github.rest.issues.addAssignees({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              assignees: [author]
+            });
+            
+            console.log(`PR 작성자 ${author}를 assignee로 할당했습니다.`);
+          } catch (error) {
+            console.log(`Assignee 할당 실패: ${error.message}`);
+          } 

@@ -1,0 +1,287 @@
+name: 이슈 라벨 자동 등록
+
+on:
+  issues:
+    types: [opened, reopened, edited]
+
+jobs:
+  label-issue:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 이슈 자동 라벨링
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const issueNumber = context.payload.issue.number;
+          const issueTitle = context.payload.issue.title.toLowerCase();
+          const issueBody = context.payload.issue.body?.toLowerCase() || '';
+          const labels = new Set();
+          
+          // 타입 라벨링 (제목 기반)
+          if (issueTitle.includes('bug') || issueTitle.includes('error') || issueTitle.includes('fail') || 
+              issueBody.includes('error') || issueBody.includes('exception') || issueBody.includes('crash')) {
+            labels.add('type/bug');
+          } else if (issueTitle.includes('feature') || issueTitle.includes('enhancement') || issueTitle.includes('add') ||
+                     issueBody.includes('feature request') || issueBody.includes('new feature')) {
+            labels.add('type/feature');
+          } else if (issueTitle.includes('docs') || issueTitle.includes('documentation') || issueTitle.includes('readme') ||
+                     issueBody.includes('documentation') || issueBody.includes('guide')) {
+            labels.add('type/documentation');
+          } else if (issueTitle.includes('question') || issueTitle.includes('help') || issueTitle.includes('how') ||
+                     issueBody.includes('question') || issueBody.includes('how to')) {
+            labels.add('type/question');
+          } else if (issueTitle.includes('refactor') || issueTitle.includes('improve') || issueTitle.includes('optimize') ||
+                     issueBody.includes('refactoring') || issueBody.includes('optimization')) {
+            labels.add('type/enhancement');
+          } else if (issueTitle.includes('test') || issueTitle.includes('testing') ||
+                     issueBody.includes('test') || issueBody.includes('testing')) {
+            labels.add('type/test');
+          }
+          
+          // 우선순위 라벨링
+          if (issueTitle.includes('urgent') || issueTitle.includes('critical') || issueTitle.includes('emergency') ||
+              issueTitle.includes('hotfix') || issueBody.includes('urgent') || issueBody.includes('critical')) {
+            labels.add('priority/high');
+          } else if (issueTitle.includes('important') || issueTitle.includes('major') ||
+                     issueBody.includes('important') || issueBody.includes('blocking')) {
+            labels.add('priority/medium');
+          } else {
+            labels.add('priority/low');
+          }
+          
+          // 영역 라벨링 (키워드 기반)
+          if (issueTitle.includes('backend') || issueTitle.includes('api') || issueTitle.includes('server') ||
+              issueBody.includes('backend') || issueBody.includes('fastapi') || issueBody.includes('api') ||
+              issueBody.includes('server') || issueBody.includes('database')) {
+            labels.add('area/backend');
+          }
+          
+          if (issueTitle.includes('frontend') || issueTitle.includes('ui') || issueTitle.includes('streamlit') ||
+              issueBody.includes('frontend') || issueBody.includes('streamlit') || issueBody.includes('ui') ||
+              issueBody.includes('interface') || issueBody.includes('user interface')) {
+            labels.add('area/frontend');
+          }
+          
+          if (issueTitle.includes('agent') || issueTitle.includes('langgraph') || issueTitle.includes('llm') ||
+              issueBody.includes('agent') || issueBody.includes('langgraph') || issueBody.includes('gemini') ||
+              issueBody.includes('llm') || issueBody.includes('ai')) {
+            labels.add('area/agent');
+          }
+          
+          if (issueTitle.includes('docs') || issueTitle.includes('documentation') || issueTitle.includes('readme') ||
+              issueBody.includes('documentation') || issueBody.includes('readme') || issueBody.includes('guide')) {
+            labels.add('area/docs');
+          }
+          
+          if (issueTitle.includes('test') || issueTitle.includes('testing') ||
+              issueBody.includes('test') || issueBody.includes('testing') || issueBody.includes('pytest')) {
+            labels.add('area/tests');
+          }
+          
+          if (issueTitle.includes('config') || issueTitle.includes('setup') || issueTitle.includes('installation') ||
+              issueBody.includes('configuration') || issueBody.includes('setup') || issueBody.includes('install')) {
+            labels.add('area/config');
+          }
+          
+          // 컴포넌트 라벨링 (세부 영역)
+          if (issueBody.includes('router') || issueBody.includes('endpoint') || issueBody.includes('/api/')) {
+            labels.add('component/api');
+          }
+          
+          if (issueBody.includes('model') || issueBody.includes('schema') || issueBody.includes('pydantic')) {
+            labels.add('component/models');
+          }
+          
+          if (issueBody.includes('service') || issueBody.includes('business logic')) {
+            labels.add('component/services');
+          }
+          
+          if (issueBody.includes('agent') || issueBody.includes('langgraph')) {
+            labels.add('component/agents');
+          }
+          
+          // 상태 라벨링
+          if (issueTitle.includes('wip') || issueTitle.includes('work in progress') ||
+              issueBody.includes('work in progress') || issueBody.includes('진행중')) {
+            labels.add('status/in-progress');
+          }
+          
+          if (issueBody.includes('blocked') || issueBody.includes('waiting') ||
+              issueBody.includes('dependency') || issueBody.includes('차단')) {
+            labels.add('status/blocked');
+          }
+          
+          // 특별 라벨링
+          if (issueBody.includes('security') || issueBody.includes('vulnerability') || issueBody.includes('보안') ||
+              issueTitle.includes('security') || issueTitle.includes('vulnerability')) {
+            labels.add('security');
+          }
+          
+          if (issueBody.includes('performance') || issueBody.includes('slow') || issueBody.includes('optimization') ||
+              issueBody.includes('성능') || issueTitle.includes('performance') || issueTitle.includes('slow')) {
+            labels.add('performance');
+          }
+          
+          if (issueBody.includes('breaking change') || issueBody.includes('breaking') ||
+              issueTitle.includes('breaking')) {
+            labels.add('breaking-change');
+          }
+          
+          if (issueTitle.includes('duplicate') || issueBody.includes('duplicate') ||
+              issueBody.includes('already exists') || issueBody.includes('중복')) {
+            labels.add('duplicate');
+          }
+          
+          // 플랫폼/환경 라벨링
+          if (issueBody.includes('windows') || issueBody.includes('win32')) {
+            labels.add('platform/windows');
+          } else if (issueBody.includes('linux') || issueBody.includes('ubuntu')) {
+            labels.add('platform/linux');
+          } else if (issueBody.includes('macos') || issueBody.includes('mac')) {
+            labels.add('platform/macos');
+          }
+          
+          // 브라우저 관련
+          if (issueBody.includes('chrome') || issueBody.includes('firefox') || issueBody.includes('safari') ||
+              issueBody.includes('edge') || issueBody.includes('browser')) {
+            labels.add('browser-specific');
+          }
+          
+          // 첫 번째 이슈인지 확인 (새 기여자)
+          try {
+            const { data: userIssues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              creator: context.payload.issue.user.login,
+              state: 'all'
+            });
+            
+            if (userIssues.length === 1) {
+              labels.add('good first issue');
+              labels.add('first-time-contributor');
+            }
+          } catch (error) {
+            console.log('첫 기여자 확인 실패:', error.message);
+          }
+          
+          // 라벨 적용
+          const labelsArray = Array.from(labels);
+          if (labelsArray.length > 0) {
+            try {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                labels: labelsArray
+              });
+              
+              console.log(`라벨 추가 완료: ${labelsArray.join(', ')}`);
+              
+              // 라벨링 완료 댓글 추가
+              const labelMessage = `
+              ## 🏷️ 자동 라벨링이 완료되었습니다
+              
+              추가된 라벨:
+              ${labelsArray.map(label => `\`${label}\``).join(', ')}
+              
+              ### 📊 라벨 분류:
+              
+              **타입**: ${labelsArray.filter(l => l.startsWith('type/')).join(', ') || '미분류'}
+              **영역**: ${labelsArray.filter(l => l.startsWith('area/')).join(', ') || '일반'}
+              **우선순위**: ${labelsArray.filter(l => l.startsWith('priority/')).join(', ') || 'priority/low'}
+              **특별 라벨**: ${labelsArray.filter(l => !l.startsWith('type/') && !l.startsWith('area/') && !l.startsWith('priority/')).join(', ') || '없음'}
+              
+              ### 💡 라벨 활용법:
+              - **필터링**: 라벨을 클릭하여 관련 이슈들을 확인할 수 있습니다
+              - **검색**: \`label:"라벨명"\`으로 특정 라벨의 이슈를 검색할 수 있습니다
+              - **수정**: 라벨이 잘못되었다면 수동으로 수정해 주세요
+              
+              ${labelsArray.includes('good first issue') ? `
+              ### 🎉 첫 기여를 환영합니다!
+              
+              첫 번째 이슈를 작성해 주셔서 감사합니다. 이 프로젝트에 기여해 주셔서 정말 기쁩니다!
+              
+              **신규 기여자 안내:**
+              - [기여 가이드](../CONTRIBUTING.md)를 확인해 주세요
+              - 질문이 있으시면 언제든지 댓글로 남겨주세요
+              - 커뮤니티의 도움을 받으실 수 있습니다
+              ` : ''}
+              
+              라벨 관련 문의사항이 있으시면 댓글로 남겨주세요.
+              `;
+              
+              await github.rest.issues.createComment({
+                issue_number: issueNumber,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: labelMessage
+              });
+              
+            } catch (error) {
+              console.log(`라벨 추가 실패: ${error.message}`);
+            }
+          } else {
+            console.log('추가할 라벨이 없습니다.');
+          }
+
+  milestone-assignment:
+    runs-on: ubuntu-latest
+    needs: label-issue
+    
+    steps:
+    - name: 마일스톤 자동 할당
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const issueNumber = context.payload.issue.number;
+          const issueLabels = context.payload.issue.labels.map(label => label.name);
+          
+          // 마일스톤 매핑 (실제 마일스톤 ID로 변경 필요)
+          const milestoneMapping = {
+            'priority/high': 'v1.0.0 - Critical Fixes',
+            'type/bug': 'v1.0.1 - Bug Fixes',
+            'type/feature': 'v1.1.0 - New Features',
+            'area/backend': 'Backend Development',
+            'area/frontend': 'Frontend Development',
+            'area/docs': 'Documentation',
+            'security': 'Security Updates',
+            'performance': 'Performance Improvements'
+          };
+          
+          // 적용할 마일스톤 찾기
+          let targetMilestone = null;
+          
+          for (const label of issueLabels) {
+            if (milestoneMapping[label]) {
+              targetMilestone = milestoneMapping[label];
+              break; // 첫 번째 매칭되는 마일스톤 사용
+            }
+          }
+          
+          if (targetMilestone) {
+            try {
+              // 마일스톤 목록 가져오기
+              const { data: milestones } = await github.rest.issues.listMilestones({
+                owner: context.repo.owner,
+                repo: context.repo.repo
+              });
+              
+              const milestone = milestones.find(m => m.title === targetMilestone);
+              
+              if (milestone) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  milestone: milestone.number
+                });
+                
+                console.log(`마일스톤 할당 완료: ${targetMilestone}`);
+              } else {
+                console.log(`마일스톤을 찾을 수 없습니다: ${targetMilestone}`);
+              }
+            } catch (error) {
+              console.log(`마일스톤 할당 실패: ${error.message}`);
+            }
+          } 
