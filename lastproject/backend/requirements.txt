@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+google-generativeai
+pydantic
+python-dotenv
+streamlit
+requests
+duckduckgo-search
+langgraph
+langchain
+langchain-google-genai
+langchain-mcp-adapters
+pytest
+httpx
+pytest-asyncio

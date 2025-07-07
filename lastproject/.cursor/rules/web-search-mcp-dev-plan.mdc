@@ -1,0 +1,98 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 웹 검색 MCP 연동 개발 계획
+
+## 개요
+현재 LangChain 웹 검색 도구를 LangGraph에서 지원하는 MCP(Model Context Protocol) 웹 검색 도구로 교체하여 더 효율적이고 표준화된 웹 검색 기능을 구현합니다.
+
+## 구현 항목
+
+### 메인 기능
+- MCP 웹 검색 클라이언트 연동
+- 기존 LangChain 웹 검색 도구 교체
+- 멀티 MCP 서버 지원 (Naver Search, Exa Search)
+- 환경 설정 관리
+
+### 부가 기능
+- 웹 검색 결과 캐싱 필요 없음
+- 검색 성능 모니터링 필요 없음
+
+## 기술 스택 및 라이브러리
+
+### 핵심 기술
+- **LangGraph**: 에이전트 워크플로우 관리
+- **LangChain MCP Adapters**: MCP 서버 연동을 위한 어댑터
+- **MultiServerMCPClient**: 다중 MCP 서버 관리
+
+### MCP 서버
+- **Naver Search MCP**: 네이버 검색 API 연동
+- **Exa Search MCP**: Exa AI 검색 API 연동
+
+## 개발 계획
+
+### 1단계 - 환경 설정 및 기본 구조
+- 환경 변수 설정 (.env 파일에 MCP URL 추가)
+- MCP 클라이언트 기본 설정
+- 기존 LangChain 웹 검색 도구 분석
+
+### 2단계 - MultiServerMCPClient 구현
+- Naver Search MCP 서버 연동
+- Exa Search MCP 서버 연동
+- MCP 클라이언트 초기화 및 연결 관리
+
+### 3단계 - 웹 검색 서비스 리팩터링
+- 기존 DuckDuckGo 검색을 MCP 검색으로 교체
+- 검색 결과 포맷 통일
+- 검색 파라미터 최적화
+
+### 4단계 - 에이전트 통합
+- LangGraph 에이전트에 MCP 도구 연동
+- create_react_agent와 MCP 도구 연결
+- 기존 에이전트 기능과의 호환성 확보
+
+### 5단계 - API 엔드포인트 수정
+- 웹 검색 관련 API 엔드포인트 업데이트
+- 응답 형식 표준화
+- 에러 처리 개선
+
+### 6단계 - 프론트엔드 연동
+- Streamlit 앱에서 새로운 웹 검색 기능 활용
+- UI/UX 개선
+- 실시간 검색 결과 표시
+
+
+## 환경 변수 설정
+
+`.env` 파일에 다음 MCP URL들을 추가:
+
+```env
+# MCP 서버 URL 설정
+NAVER_SEARCH_MCP_URL=mcp url for naver search
+EXA_SEARCH_MCP_URL=mcp url for exa search
+
+```
+
+## 예상 구현 코드 구조
+
+```python
+client = MultiServerMCPClient(
+    {
+        "naver_search_mcp": {
+            "url": "mcp url",
+            "transport": "streamable_http",
+        },
+        "exa_search_mcp": {
+            "url": "mcp url", 
+            "transport": "streamable_http",
+        }
+    }
+)
+tools = await client.get_tools()
+```
+
+
+
+

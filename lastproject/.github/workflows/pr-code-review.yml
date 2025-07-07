@@ -1,0 +1,223 @@
+name: PR 코드 리뷰 자동 등록
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  automated-code-review:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Python 3.11 설정
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: 코드 분석 도구 설치
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black isort bandit mypy
+        pip install -r backend/requirements.txt || true
+    
+    - name: 변경된 Python 파일 찾기
+      id: changed-files
+      uses: tj-actions/changed-files@v40
+      with:
+        files: |
+          *.py
+          **/*.py
+    
+    - name: 코드 스타일 검사 (Black)
+      if: steps.changed-files.outputs.any_changed == 'true'
+      run: |
+        echo "=== Black 포맷 체크 ===" > code_review_results.txt
+        black --check --diff ${{ steps.changed-files.outputs.all_changed_files }} >> code_review_results.txt 2>&1 || echo "Black 포맷 이슈 발견" >> code_review_results.txt
+        echo "" >> code_review_results.txt
+      continue-on-error: true
+    
+    - name: Import 정렬 검사 (isort)
+      if: steps.changed-files.outputs.any_changed == 'true'
+      run: |
+        echo "=== isort Import 정렬 체크 ===" >> code_review_results.txt
+        isort --check-only --diff ${{ steps.changed-files.outputs.all_changed_files }} >> code_review_results.txt 2>&1 || echo "Import 정렬 이슈 발견" >> code_review_results.txt
+        echo "" >> code_review_results.txt
+      continue-on-error: true
+    
+    - name: 코드 품질 검사 (Flake8)
+      if: steps.changed-files.outputs.any_changed == 'true'
+      run: |
+        echo "=== Flake8 코드 품질 체크 ===" >> code_review_results.txt
+        flake8 ${{ steps.changed-files.outputs.all_changed_files }} --max-line-length=88 --extend-ignore=E203,W503 >> code_review_results.txt 2>&1 || echo "Flake8 이슈 발견" >> code_review_results.txt
+        echo "" >> code_review_results.txt
+      continue-on-error: true
+    
+    - name: 보안 검사 (Bandit)
+      if: steps.changed-files.outputs.any_changed == 'true'
+      run: |
+        echo "=== Bandit 보안 검사 ===" >> code_review_results.txt
+        bandit -r ${{ steps.changed-files.outputs.all_changed_files }} -f txt >> code_review_results.txt 2>&1 || echo "보안 이슈 발견" >> code_review_results.txt
+        echo "" >> code_review_results.txt
+      continue-on-error: true
+    
+    - name: 타입 검사 (MyPy)
+      if: steps.changed-files.outputs.any_changed == 'true'
+      run: |
+        echo "=== MyPy 타입 체크 ===" >> code_review_results.txt
+        mypy ${{ steps.changed-files.outputs.all_changed_files }} --ignore-missing-imports >> code_review_results.txt 2>&1 || echo "타입 검사 이슈 발견" >> code_review_results.txt
+        echo "" >> code_review_results.txt
+      continue-on-error: true
+    
+    - name: 복잡도 분석
+      if: steps.changed-files.outputs.any_changed == 'true'
+      run: |
+        echo "=== 코드 복잡도 분석 ===" >> code_review_results.txt
+        python -c "
+        import ast
+        import sys
+        
+        def analyze_complexity(file_path):
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    tree = ast.parse(f.read())
+                
+                functions = []
+                classes = []
+                
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.FunctionDef):
+                        # 함수 복잡도 계산 (간단한 버전)
+                        complexity = len([n for n in ast.walk(node) if isinstance(n, (ast.If, ast.For, ast.While, ast.Try))])
+                        if complexity > 5:
+                            functions.append(f'  - {node.name}() 함수: 복잡도 {complexity} (권장: 5 이하)')
+                    
+                    elif isinstance(node, ast.ClassDef):
+                        method_count = len([n for n in node.body if isinstance(n, ast.FunctionDef)])
+                        if method_count > 10:
+                            classes.append(f'  - {node.name} 클래스: 메소드 {method_count}개 (권장: 10개 이하)')
+                
+                if functions or classes:
+                    print(f'{file_path}:')
+                    for func in functions:
+                        print(func)
+                    for cls in classes:
+                        print(cls)
+                    print()
+                        
+            except Exception as e:
+                print(f'{file_path}: 분석 실패 - {e}')
+        
+        files = '${{ steps.changed-files.outputs.all_changed_files }}'.split()
+        for file_path in files:
+            if file_path.endswith('.py'):
+                analyze_complexity(file_path)
+        " >> code_review_results.txt 2>&1
+      continue-on-error: true
+    
+    - name: 코드 리뷰 댓글 생성
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const prNumber = context.payload.pull_request.number;
+          
+          let reviewResults = '';
+          try {
+            reviewResults = fs.readFileSync('code_review_results.txt', 'utf8');
+          } catch (error) {
+            reviewResults = '코드 분석 결과를 읽을 수 없습니다.';
+          }
+          
+          // 변경된 파일 수 계산
+          const changedFileCount = '${{ steps.changed-files.outputs.all_changed_files_count }}';
+          const changedFiles = '${{ steps.changed-files.outputs.all_changed_files }}'.split(' ').filter(f => f.endsWith('.py'));
+          
+          // 리뷰 요약 생성
+          const hasBlackIssues = reviewResults.includes('Black 포맷 이슈');
+          const hasIsortIssues = reviewResults.includes('Import 정렬 이슈');
+          const hasFlake8Issues = reviewResults.includes('Flake8 이슈');
+          const hasSecurityIssues = reviewResults.includes('보안 이슈');
+          const hasTypeIssues = reviewResults.includes('타입 검사 이슈');
+          
+          const issueCount = [hasBlackIssues, hasIsortIssues, hasFlake8Issues, hasSecurityIssues, hasTypeIssues].filter(Boolean).length;
+          
+          let reviewStatus = '✅ 모든 코드 품질 검사를 통과했습니다!';
+          let reviewIcon = '✅';
+          
+          if (issueCount > 3) {
+            reviewStatus = '❌ 여러 코드 품질 이슈가 발견되었습니다. 수정이 필요합니다.';
+            reviewIcon = '❌';
+          } else if (issueCount > 0) {
+            reviewStatus = '⚠️ 일부 코드 품질 이슈가 발견되었습니다. 확인해 주세요.';
+            reviewIcon = '⚠️';
+          }
+          
+          const reviewComment = `
+          ## ${reviewIcon} 자동 코드 리뷰 결과
+          
+          **분석 대상**: ${changedFiles.length}개 Python 파일
+          **상태**: ${reviewStatus}
+          
+          ### 📊 검사 결과 요약
+          
+          | 검사 항목 | 상태 |
+          |-----------|------|
+          | 코드 포맷 (Black) | ${hasBlackIssues ? '❌ 이슈 발견' : '✅ 통과'} |
+          | Import 정렬 (isort) | ${hasIsortIssues ? '❌ 이슈 발견' : '✅ 통과'} |
+          | 코드 품질 (Flake8) | ${hasFlake8Issues ? '❌ 이슈 발견' : '✅ 통과'} |
+          | 보안 검사 (Bandit) | ${hasSecurityIssues ? '❌ 이슈 발견' : '✅ 통과'} |
+          | 타입 검사 (MyPy) | ${hasTypeIssues ? '❌ 이슈 발견' : '✅ 통과'} |
+          
+          <details>
+          <summary>📋 상세 분석 결과 (클릭하여 펼치기)</summary>
+          
+          \`\`\`
+          ${reviewResults}
+          \`\`\`
+          
+          </details>
+          
+          ### 🛠️ 수정 방법
+          
+          ${hasBlackIssues ? '- **포맷 수정**: `black .` 명령어로 코드 포맷을 자동 수정할 수 있습니다.\n' : ''}
+          ${hasIsortIssues ? '- **Import 정렬**: `isort .` 명령어로 import 순서를 자동 정렬할 수 있습니다.\n' : ''}
+          ${hasFlake8Issues ? '- **코드 품질**: Flake8 오류를 확인하고 수동으로 수정해 주세요.\n' : ''}
+          ${hasSecurityIssues ? '- **보안 이슈**: Bandit이 발견한 보안 취약점을 검토하고 수정해 주세요.\n' : ''}
+          ${hasTypeIssues ? '- **타입 힌트**: MyPy 오류를 확인하고 타입 힌트를 추가해 주세요.\n' : ''}
+          
+          ### 💡 추천 사항
+          - 로컬에서 pre-commit hook을 설정하여 자동으로 검사하세요
+          - IDE 확장 프로그램을 활용하여 실시간으로 이슈를 확인하세요
+          - 코드 리뷰 전에 모든 검사를 통과하는 것을 권장합니다
+          
+          ---
+          
+          이 리뷰는 자동으로 생성되었습니다. 추가 질문이 있으시면 팀원에게 문의해 주세요.
+          `;
+          
+          await github.rest.issues.createComment({
+            issue_number: prNumber,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: reviewComment
+          });
+          
+          // 코드 품질 이슈가 많으면 리뷰 요청 상태로 설정
+          if (issueCount > 2) {
+            try {
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                body: `자동 코드 리뷰에서 ${issueCount}개의 이슈가 발견되었습니다. 수정 후 다시 요청해 주세요.`,
+                event: 'REQUEST_CHANGES'
+              });
+            } catch (error) {
+              console.log('리뷰 상태 설정 실패:', error.message);
+            }
+          } 

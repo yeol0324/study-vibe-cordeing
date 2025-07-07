@@ -1,0 +1,174 @@
+name: PR 라벨 자동 등록
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  label-pr:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: 변경된 파일 분석
+      id: changed-files
+      uses: tj-actions/changed-files@v40
+      with:
+        files_yaml: |
+          backend:
+            - 'backend/**/*.py'
+          frontend:
+            - 'frontend/**/*.py'
+          docs:
+            - 'docs/**'
+            - '*.md'
+            - '**/*.md'
+          tests:
+            - '**/test_*.py'
+            - '**/tests/**'
+          config:
+            - '*.yml'
+            - '*.yaml'
+            - '*.json'
+            - '.github/**'
+            - 'requirements.txt'
+            - '*.toml'
+          api:
+            - 'backend/app/routers/**'
+            - 'backend/app/api/**'
+          models:
+            - 'backend/app/models/**'
+          services:
+            - 'backend/app/services/**'
+          agents:
+            - 'backend/app/agents/**'
+    
+    - name: PR 제목과 내용 분석하여 라벨 추가
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const prNumber = context.payload.pull_request.number;
+          const prTitle = context.payload.pull_request.title.toLowerCase();
+          const prBody = context.payload.pull_request.body?.toLowerCase() || '';
+          const labels = new Set();
+          
+          // 변경된 파일 기반 라벨링
+          const changedFiles = {
+            backend: '${{ steps.changed-files.outputs.backend_any_changed }}' === 'true',
+            frontend: '${{ steps.changed-files.outputs.frontend_any_changed }}' === 'true',
+            docs: '${{ steps.changed-files.outputs.docs_any_changed }}' === 'true',
+            tests: '${{ steps.changed-files.outputs.tests_any_changed }}' === 'true',
+            config: '${{ steps.changed-files.outputs.config_any_changed }}' === 'true',
+            api: '${{ steps.changed-files.outputs.api_any_changed }}' === 'true',
+            models: '${{ steps.changed-files.outputs.models_any_changed }}' === 'true',
+            services: '${{ steps.changed-files.outputs.services_any_changed }}' === 'true',
+            agents: '${{ steps.changed-files.outputs.agents_any_changed }}' === 'true'
+          };
+          
+          // 영역별 라벨 추가
+          if (changedFiles.backend) labels.add('area/backend');
+          if (changedFiles.frontend) labels.add('area/frontend');
+          if (changedFiles.docs) labels.add('area/docs');
+          if (changedFiles.tests) labels.add('area/tests');
+          if (changedFiles.config) labels.add('area/config');
+          if (changedFiles.api) labels.add('component/api');
+          if (changedFiles.models) labels.add('component/models');
+          if (changedFiles.services) labels.add('component/services');
+          if (changedFiles.agents) labels.add('component/agents');
+          
+          // PR 제목 기반 타입 라벨링
+          if (prTitle.includes('[feat]') || prTitle.includes('feature') || prTitle.includes('add')) {
+            labels.add('type/feature');
+          } else if (prTitle.includes('[fix]') || prTitle.includes('bug') || prTitle.includes('error')) {
+            labels.add('type/bug');
+          } else if (prTitle.includes('[docs]') || prTitle.includes('documentation')) {
+            labels.add('type/documentation');
+          } else if (prTitle.includes('[refactor]') || prTitle.includes('refactoring')) {
+            labels.add('type/refactoring');
+          } else if (prTitle.includes('[test]') || prTitle.includes('testing')) {
+            labels.add('type/test');
+          } else if (prTitle.includes('[chore]') || prTitle.includes('maintenance')) {
+            labels.add('type/chore');
+          } else if (prTitle.includes('[style]') || prTitle.includes('formatting')) {
+            labels.add('type/style');
+          }
+          
+          // 우선순위 라벨링 (제목과 내용 분석)
+          if (prTitle.includes('urgent') || prTitle.includes('critical') || prTitle.includes('hotfix')) {
+            labels.add('priority/high');
+          } else if (prTitle.includes('important') || prBody.includes('breaking change')) {
+            labels.add('priority/medium');
+          } else {
+            labels.add('priority/low');
+          }
+          
+          // 크기 라벨링 (변경된 파일 수 기반)
+          const changedFileCount = '${{ steps.changed-files.outputs.all_changed_files_count }}';
+          if (parseInt(changedFileCount) > 20) {
+            labels.add('size/XL');
+          } else if (parseInt(changedFileCount) > 10) {
+            labels.add('size/L');
+          } else if (parseInt(changedFileCount) > 5) {
+            labels.add('size/M');
+          } else if (parseInt(changedFileCount) > 1) {
+            labels.add('size/S');
+          } else {
+            labels.add('size/XS');
+          }
+          
+          // 특별한 경우 라벨링
+          if (prBody.includes('breaking change') || prTitle.includes('breaking')) {
+            labels.add('breaking-change');
+          }
+          
+          if (prTitle.includes('wip') || prTitle.includes('work in progress') || context.payload.pull_request.draft) {
+            labels.add('status/wip');
+          }
+          
+          if (prBody.includes('needs review') || prBody.includes('ready for review')) {
+            labels.add('status/ready-for-review');
+          }
+          
+          // 라벨 적용
+          const labelsArray = Array.from(labels);
+          if (labelsArray.length > 0) {
+            try {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                labels: labelsArray
+              });
+              
+              console.log(`라벨 추가 완료: ${labelsArray.join(', ')}`);
+              
+              // 라벨링 완료 댓글 추가
+              const labelMessage = `
+              ## 🏷️ 자동 라벨링이 완료되었습니다
+              
+              추가된 라벨:
+              ${labelsArray.map(label => `\`${label}\``).join(', ')}
+              
+              ### 라벨 설명:
+              - **영역 라벨**: 변경된 코드 영역
+              - **타입 라벨**: PR의 유형 (feature, bug, docs 등)
+              - **우선순위 라벨**: 중요도 수준
+              - **크기 라벨**: 변경 규모 (파일 수 기준)
+              
+              라벨이 잘못 설정되었다면 수동으로 수정해 주세요.
+              `;
+              
+              await github.rest.issues.createComment({
+                issue_number: prNumber,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: labelMessage
+              });
+              
+            } catch (error) {
+              console.log(`라벨 추가 실패: ${error.message}`);
+            }
+          } else {
+            console.log('추가할 라벨이 없습니다.');
+          } 

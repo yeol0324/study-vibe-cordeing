@@ -1,0 +1,202 @@
+name: 이슈 자동 댓글
+
+on:
+  issues:
+    types: [opened, reopened]
+
+jobs:
+  issue-welcome-comment:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 이슈 웰컴 댓글 추가
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const issueNumber = context.payload.issue.number;
+          const author = context.payload.issue.user.login;
+          const issueTitle = context.payload.issue.title;
+          const issueBody = context.payload.issue.body || '';
+          
+          // 이슈 타입 분석
+          let issueType = 'general';
+          let typeIcon = '📝';
+          let typeMessage = '';
+          
+          if (issueTitle.toLowerCase().includes('bug') || issueBody.toLowerCase().includes('error')) {
+            issueType = 'bug';
+            typeIcon = '🐛';
+            typeMessage = '버그 리포트를 작성해 주셔서 감사합니다.';
+          } else if (issueTitle.toLowerCase().includes('feature') || issueTitle.toLowerCase().includes('enhancement')) {
+            issueType = 'feature';
+            typeIcon = '✨';
+            typeMessage = '새로운 기능 제안을 해주셔서 감사합니다.';
+          } else if (issueTitle.toLowerCase().includes('question') || issueTitle.toLowerCase().includes('help')) {
+            issueType = 'question';
+            typeIcon = '❓';
+            typeMessage = '질문을 남겨주셔서 감사합니다.';
+          } else if (issueTitle.toLowerCase().includes('docs') || issueTitle.toLowerCase().includes('documentation')) {
+            issueType = 'documentation';
+            typeIcon = '📚';
+            typeMessage = '문서 개선 제안을 해주셔서 감사합니다.';
+          }
+          
+          const welcomeMessage = `
+          ## ${typeIcon} 이슈가 생성되었습니다!
+          
+          안녕하세요 @${author}님! ${typeMessage}
+          
+          ### 📋 이슈 처리 절차
+          
+          1. **이슈 검토**: 관리자가 이슈를 검토하고 라벨을 할당합니다
+          2. **우선순위 설정**: 이슈의 중요도에 따라 우선순위가 결정됩니다
+          3. **담당자 할당**: 적절한 담당자가 자동 또는 수동으로 할당됩니다
+          4. **진행 상황 업데이트**: 진행 상황이 업데이트되면 알림을 받게 됩니다
+          
+          ### ✅ 이슈 작성 체크리스트
+          
+          다음 정보가 포함되었는지 확인해 주세요:
+          
+          ${issueType === 'bug' ? `
+          **버그 리포트의 경우:**
+          - [ ] 문제 상황 명확히 설명
+          - [ ] 재현 단계 포함
+          - [ ] 예상 동작 vs 실제 동작
+          - [ ] 환경 정보 (OS, 브라우저, Python 버전 등)
+          - [ ] 스크린샷 또는 에러 로그 (해당시)
+          ` : issueType === 'feature' ? `
+          **기능 요청의 경우:**
+          - [ ] 요청하는 기능의 목적과 필요성
+          - [ ] 구체적인 기능 명세
+          - [ ] 사용 시나리오 예시
+          - [ ] 대안이 있다면 비교 분석
+          ` : issueType === 'question' ? `
+          **질문의 경우:**
+          - [ ] 구체적인 질문 내용
+          - [ ] 시도해본 방법들
+          - [ ] 관련 코드나 설정 (해당시)
+          - [ ] 참고한 문서나 자료
+          ` : `
+          **일반적인 정보:**
+          - [ ] 명확한 제목과 설명
+          - [ ] 관련 컨텍스트 정보
+          - [ ] 첨부 파일 (필요시)
+          `}
+          
+          ### 🔄 다음 단계
+          
+          - 자동으로 라벨과 담당자가 할당됩니다
+          - 담당자가 할당되면 추가 논의가 시작됩니다
+          - 진행 상황은 이 이슈에서 계속 업데이트됩니다
+          
+          ### 📞 추가 지원
+          
+          - 급한 문제인 경우: 제목에 \`urgent\` 태그를 추가해 주세요
+          - 질문이 있으시면: 언제든지 댓글로 남겨주세요
+          - 관련 문서: [프로젝트 README](../README.md) 참조
+          
+          감사합니다! 🙏
+          `;
+          
+          await github.rest.issues.createComment({
+            issue_number: issueNumber,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: welcomeMessage
+          });
+
+  issue-template-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 이슈 템플릿 준수 확인
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const issueNumber = context.payload.issue.number;
+          const issueBody = context.payload.issue.body || '';
+          const issueTitle = context.payload.issue.title;
+          
+          // 필수 정보 체크
+          const checks = {
+            hasDescription: issueBody.length > 50,
+            hasSteps: issueBody.includes('단계') || issueBody.includes('step') || issueBody.includes('재현'),
+            hasEnvironment: issueBody.includes('환경') || issueBody.includes('버전') || issueBody.includes('OS'),
+            hasExpected: issueBody.includes('예상') || issueBody.includes('expected') || issueBody.includes('기대')
+          };
+          
+          const missingInfo = [];
+          
+          if (!checks.hasDescription) {
+            missingInfo.push('- 상세한 설명 (최소 50자 이상)');
+          }
+          
+          if (issueTitle.toLowerCase().includes('bug') && !checks.hasSteps) {
+            missingInfo.push('- 문제 재현 단계');
+          }
+          
+          if (issueTitle.toLowerCase().includes('bug') && !checks.hasEnvironment) {
+            missingInfo.push('- 환경 정보 (OS, 브라우저, 버전 등)');
+          }
+          
+          if (issueTitle.toLowerCase().includes('bug') && !checks.hasExpected) {
+            missingInfo.push('- 예상했던 동작');
+          }
+          
+          if (missingInfo.length > 0) {
+            const templateMessage = `
+            ## ⚠️ 추가 정보가 필요합니다
+            
+            이슈를 더 빠르게 해결하기 위해 다음 정보를 추가해 주세요:
+            
+            ${missingInfo.join('\n')}
+            
+            ### 📝 템플릿 가이드
+            
+            **버그 리포트의 경우:**
+            \`\`\`
+            ## 문제 설명
+            무엇이 잘못되었나요?
+            
+            ## 재현 단계
+            1. ...
+            2. ...
+            3. ...
+            
+            ## 예상 동작
+            어떻게 동작해야 하나요?
+            
+            ## 실제 동작
+            실제로는 어떻게 동작하나요?
+            
+            ## 환경
+            - OS: 
+            - 브라우저: 
+            - Python 버전: 
+            \`\`\`
+            
+            **기능 요청의 경우:**
+            \`\`\`
+            ## 요청 배경
+            왜 이 기능이 필요한가요?
+            
+            ## 제안하는 해결책
+            어떤 기능을 원하시나요?
+            
+            ## 대안
+            다른 해결 방법을 시도해 보셨나요?
+            
+            ## 추가 컨텍스트
+            기타 관련 정보
+            \`\`\`
+            
+            이슈를 수정해 주시면 더 빠른 도움을 받을 수 있습니다! 🚀
+            `;
+            
+            await github.rest.issues.createComment({
+              issue_number: issueNumber,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: templateMessage
+            });
+          } 

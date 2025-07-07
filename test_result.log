@@ -1,0 +1,12 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-8.4.1, pluggy-1.6.0
+rootdir: /Users/yurim/Documents/study-vibe-coding
+plugins: anyio-4.9.0, langsmith-0.3.45
+collected 14 items
+
+project4/backend/tests/test_agent.py .....                               [ 35%]
+project4/backend/tests/test_chat.py .....                                [ 71%]
+project4/backend/tests/test_config.py ..                                 [ 85%]
+project4/backend/tests/test_main.py ..                                   [100%]
+
+============================== 14 passed in 0.92s ==============================
